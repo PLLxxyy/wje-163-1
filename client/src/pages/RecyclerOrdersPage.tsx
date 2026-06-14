@@ -10,6 +10,7 @@ const statusNames: Record<string, string> = {
   accepted: '回收中',
   completed: '待确认',
   confirmed: '已完成',
+  cancelled: '已取消',
 };
 
 export default function RecyclerOrdersPage() {

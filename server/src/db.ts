@@ -9,6 +9,39 @@ const db: SqliteDatabase = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+function migrateAppointmentsStatus() {
+  const cols = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='appointments'").get() as { sql: string } | undefined;
+  if (!cols || cols.sql.includes("'cancelled'")) return;
+  db.pragma('foreign_keys = OFF');
+  const tx = db.transaction(() => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS appointments_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        station_id INTEGER NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('visit','pickup')),
+        time_slot TEXT NOT NULL,
+        items TEXT NOT NULL DEFAULT '',
+        estimated_weight REAL NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','completed','confirmed','cancelled')),
+        recycler_id INTEGER,
+        actual_weight REAL,
+        actual_amount REAL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+        completed_at TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (station_id) REFERENCES stations(id),
+        FOREIGN KEY (recycler_id) REFERENCES users(id)
+      );
+    `);
+    db.exec('INSERT INTO appointments_new SELECT * FROM appointments');
+    db.exec('DROP TABLE appointments');
+    db.exec('ALTER TABLE appointments_new RENAME TO appointments');
+  });
+  tx();
+  db.pragma('foreign_keys = ON');
+}
+
 function initDB() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -49,7 +82,7 @@ function initDB() {
       time_slot TEXT NOT NULL,
       items TEXT NOT NULL DEFAULT '',
       estimated_weight REAL NOT NULL DEFAULT 0,
-      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','completed','confirmed')),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','completed','confirmed','cancelled')),
       recycler_id INTEGER,
       actual_weight REAL,
       actual_amount REAL,
@@ -73,6 +106,8 @@ function initDB() {
       FOREIGN KEY (reviewee_id) REFERENCES users(id)
     );
   `);
+
+  migrateAppointmentsStatus();
 
   const userCount = db.prepare('SELECT COUNT(*) as cnt FROM users').get() as { cnt: number };
   if (userCount.cnt === 0) {

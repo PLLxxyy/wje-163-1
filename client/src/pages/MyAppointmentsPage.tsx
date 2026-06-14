@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getMyAppointments, confirmAppointment, createReview, getAppointmentReviews } from '../api';
+import { getMyAppointments, confirmAppointment, createReview, getAppointmentReviews, cancelAppointment } from '../api';
 import { Appointment, Review } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
@@ -10,6 +10,7 @@ const statusNames: Record<string, string> = {
   accepted: '回收中',
   completed: '待确认',
   confirmed: '已完成',
+  cancelled: '已取消',
 };
 
 export default function MyAppointmentsPage() {
@@ -48,6 +49,17 @@ export default function MyAppointmentsPage() {
     try {
       await confirmAppointment(id);
       showToast('已确认完成', 'success');
+      loadAppointments();
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleCancel = async (id: number) => {
+    if (!confirm('确定要取消该预约吗？取消后排队名额将被释放。')) return;
+    try {
+      await cancelAppointment(id);
+      showToast('预约已取消', 'success');
       loadAppointments();
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -114,6 +126,9 @@ export default function MyAppointmentsPage() {
                 </div>
               )}
               <div className="apt-actions">
+                {apt.status === 'pending' && (
+                  <button className="btn btn-danger btn-sm" onClick={() => handleCancel(apt.id)}>取消预约</button>
+                )}
                 {apt.status === 'completed' && (
                   <button className="btn btn-success btn-sm" onClick={() => handleConfirm(apt.id)}>确认完成</button>
                 )}

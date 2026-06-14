@@ -36,7 +36,7 @@ export interface Appointment {
   time_slot: string;
   items: string;
   estimated_weight: number;
-  status: 'pending' | 'accepted' | 'completed' | 'confirmed';
+  status: 'pending' | 'accepted' | 'completed' | 'confirmed' | 'cancelled';
   recycler_id: number | null;
   actual_weight: number | null;
   actual_amount: number | null;

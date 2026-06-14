@@ -117,6 +117,10 @@ export async function confirmAppointment(id: number): Promise<{ message: string 
   return request(`/appointments/${id}/confirm`, { method: 'PUT' });
 }
 
+export async function cancelAppointment(id: number): Promise<{ message: string }> {
+  return request(`/appointments/${id}/cancel`, { method: 'PUT' });
+}
+
 export async function getAllAppointments(): Promise<{ appointments: Appointment[] }> {
   return request('/appointments/all');
 }

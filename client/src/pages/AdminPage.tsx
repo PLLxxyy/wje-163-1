@@ -10,7 +10,7 @@ import { useToast } from '../components/Toast';
 import StarRating from '../components/StarRating';
 
 const statusNames: Record<string, string> = {
-  pending: '待接单', accepted: '回收中', completed: '待确认', confirmed: '已完成',
+  pending: '待接单', accepted: '回收中', completed: '待确认', confirmed: '已完成', cancelled: '已取消',
 };
 
 export default function AdminPage() {
