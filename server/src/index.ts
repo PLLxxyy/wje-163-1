@@ -190,6 +190,16 @@ app.put('/api/appointments/:id/confirm', authMiddleware, (req: AuthRequest, res:
   res.json({ message: '已确认' });
 });
 
+app.put('/api/appointments/:id/cancel', authMiddleware, (req: AuthRequest, res: Response) => {
+  const apt = db.prepare('SELECT * FROM appointments WHERE id = ?').get(req.params.id) as any;
+  if (!apt) { res.status(404).json({ error: '预约不存在' }); return; }
+  if (apt.user_id !== req.userId) { res.status(403).json({ error: '无权限取消该预约' }); return; }
+  if (apt.status !== 'pending') { res.status(400).json({ error: '当前状态无法取消预约' }); return; }
+  db.prepare("UPDATE appointments SET status='cancelled' WHERE id=?").run(req.params.id);
+  db.prepare('UPDATE stations SET queue_count = MAX(queue_count - 1, 0) WHERE id = ?').run(apt.station_id);
+  res.json({ message: '预约已取消' });
+});
+
 app.get('/api/appointments/all', authMiddleware, adminOnly, (req: AuthRequest, res: Response) => {
   const appointments = db.prepare(`
     SELECT a.*, s.name as station_name, s.address as station_address,
